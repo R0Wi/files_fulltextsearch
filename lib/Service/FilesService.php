@@ -392,6 +392,10 @@ class FilesService {
 			throw new FileIsNotIndexableException();
 		}
 
+		if ($file->getExtension() === 'part') {
+			throw new FileIsNotIndexableException('part files are not indexed');
+		}
+
 		$ownerId = '';
 		if ($file->getOwner() !== null) {
 			$ownerId = $file->getOwner()
@@ -405,8 +409,12 @@ class FilesService {
 		$document->setType($file->getType())
 				 ->setOwnerId($ownerId)
 				 ->setPath($this->getPathFromViewerId($file->getId(), $viewerId))
-				 ->setViewerId($viewerId)
-				 ->setMimetype($file->getMimetype());
+				 ->setViewerId($viewerId);
+
+		if ($file->getMimetype() !== null) {
+			$document->setMimetype($file->getMimetype());
+		}
+
 		$document->setModifiedTime($file->getMTime())
 				 ->setSource($source);
 

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 
@@ -9,7 +10,7 @@ declare(strict_types=1);
  * later. See the COPYING file.
  *
  * @author Maxence Lange <maxence@artificial-owl.com>
- * @copyright 2018
+ * @copyright 2020
  * @license GNU AGPL version 3 or any later version
  *
  * This program is free software: you can redistribute it and/or modify
@@ -28,20 +29,41 @@ declare(strict_types=1);
  */
 
 
-namespace OCA\Files_FullTextSearch\AppInfo;
+namespace OCA\Files_FullTextSearch\Listeners;
+
+use OCP\EventDispatcher\Event;
+use OCP\EventDispatcher\IEventListener;
+use OCP\Files\Events\Node\NodeRenamedEvent;
+use OCP\Files\InvalidPathException;
+use OCP\Files\NotFoundException;
+use OCP\FullTextSearch\Model\IIndex;
 
 
-use OCP\AppFramework\QueryException;
+/**
+ * Class FileRenamed
+ *
+ * @package OCA\Circles\Events
+ */
+class FileRenamed extends ListenersCore implements IEventListener {
 
 
-require_once __DIR__ . '/autoload.php';
+	/**
+	 * @param Event $event
+	 */
+	public function handle(Event $event): void {
+		if (!($event instanceof NodeRenamedEvent)) {
+			return;
+		}
 
+		$node = $event->getSource();
+		try {
+			$this->fullTextSearchManager->updateIndexStatus(
+				'files', (string)$node->getId(), IIndex::INDEX_META
+			);
+		} catch (InvalidPathException | NotFoundException $e) {
+			$this->exception($e);
+		}
+	}
 
-$app = new Application();
-
-try {
-	$app->registerFilesSearch();
-} catch (QueryException $e) {
-	/** you do nothing. */
 }
 

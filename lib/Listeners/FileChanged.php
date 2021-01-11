@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 
@@ -9,7 +10,7 @@ declare(strict_types=1);
  * later. See the COPYING file.
  *
  * @author Maxence Lange <maxence@artificial-owl.com>
- * @copyright 2018
+ * @copyright 2020
  * @license GNU AGPL version 3 or any later version
  *
  * This program is free software: you can redistribute it and/or modify
@@ -28,53 +29,41 @@ declare(strict_types=1);
  */
 
 
-namespace OCA\Files_FullTextSearch\Db;
+namespace OCA\Files_FullTextSearch\Listeners;
 
-
-use OC;
-use OC\SystemConfig;
-use OCA\Files_FullTextSearch\Service\MiscService;
-use OCA\Social\Db\SocialQueryBuilder;
-use OCP\IDBConnection;
-use OCP\ILogger;
+use OCP\EventDispatcher\Event;
+use OCP\EventDispatcher\IEventListener;
+use OCP\Files\Events\Node\NodeWrittenEvent;
+use OCP\Files\InvalidPathException;
+use OCP\Files\NotFoundException;
+use OCP\FullTextSearch\Model\IIndex;
 
 
 /**
- * Class CoreRequestBuilder
+ * Class FileChanged
  *
- * @package OCA\Files_FullTextSearch\Db
+ * @package OCA\Circles\Events
  */
-class CoreRequestBuilder {
-
-
-	const TABLE_SHARES = 'share';
-
-
-	/** @var MiscService */
-	protected $miscService;
-
-	/** @var string */
-	protected $defaultSelectAlias;
+class FileChanged extends ListenersCore implements IEventListener {
 
 
 	/**
-	 * CoreRequestBuilder constructor.
-	 *
-	 * @param MiscService $miscService
+	 * @param Event $event
 	 */
-	public function __construct(MiscService $miscService) {
-		$this->miscService = $miscService;
-	}
+	public function handle(Event $event): void {
+		if (!($event instanceof NodeWrittenEvent)) {
+			return;
+		}
 
-	/**
-	 * @return CoreQueryBuilder
-	 */
-	public function getQueryBuilder(): CoreQueryBuilder {
-		return new CoreQueryBuilder(
-			OC::$server->get(IDBConnection::class),
-			OC::$server->get(SystemConfig::class),
-			OC::$server->get(ILogger::class)
-		);
+		$node = $event->getNode();
+
+		try {
+			$this->fullTextSearchManager->updateIndexStatus(
+				'files', (string)$node->getId(), IIndex::INDEX_CONTENT
+			);
+		} catch (InvalidPathException | NotFoundException $e) {
+			$this->exception($e);
+		}
 	}
 
 }

@@ -1,6 +1,31 @@
 # Changelog
 
 
+### 20.0.0
+
+- upgrade deps
+- better QueryBuilder
+- new listeners
+- new events
+- small bugfixes
+
+
+### 2.0.0
+
+- compat nc20
+
+
+### 1.4.3
+
+- compat nc19
+- small bugfixes
+
+
+### 1.4.2
+
+- ignore .part files
+
+
 ### 1.4.1
 
 - fixing a conflict with onlyoffice

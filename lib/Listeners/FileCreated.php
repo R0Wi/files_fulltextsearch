@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 
@@ -9,7 +10,7 @@ declare(strict_types=1);
  * later. See the COPYING file.
  *
  * @author Maxence Lange <maxence@artificial-owl.com>
- * @copyright 2018
+ * @copyright 2020
  * @license GNU AGPL version 3 or any later version
  *
  * This program is free software: you can redistribute it and/or modify
@@ -28,13 +29,44 @@ declare(strict_types=1);
  */
 
 
-namespace OCA\Files_FullTextSearch\AppInfo;
+namespace OCA\Files_FullTextSearch\Listeners;
 
 
-$composerDir = __DIR__ . '/../vendor/';
+use OCP\EventDispatcher\Event;
+use OCP\EventDispatcher\IEventListener;
+use OCP\Files\Events\Node\NodeCreatedEvent;
+use OCP\Files\InvalidPathException;
+use OCP\Files\NotFoundException;
+use OCP\FullTextSearch\Model\IIndex;
 
 
-if (is_dir($composerDir) && file_exists($composerDir . 'autoload.php')) {
-	require_once $composerDir . 'autoload.php';
+/**
+ * Class FileCreated
+ *
+ * @package OCA\Circles\Listeners
+ */
+class FileCreated extends ListenersCore implements IEventListener {
+
+
+	/**
+	 * @param Event $event
+	 */
+	public function handle(Event $event): void {
+		if (!$this->registerFullTextSearchServices() || !($event instanceof NodeCreatedEvent)) {
+			return;
+		}
+
+		$node = $event->getNode();
+		$user = $this->userSession->getUser();
+
+		try {
+			$this->fullTextSearchManager->createIndex(
+				'files', (string)$node->getId(), $user->getUID(), IIndex::INDEX_FULL
+			);
+		} catch (InvalidPathException | NotFoundException $e) {
+			$this->exception($e);
+		}
+	}
+
 }
 

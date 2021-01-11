@@ -1,7 +1,7 @@
 {
     "_readme": [
         "This file locks the dependencies of your project to a known state",
-        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
     "content-hash": "0bdc4e0cc7225a7d091c3c2c830120e5",
@@ -12,17 +12,18 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/daita/my-small-php-tools.git",
-                "reference": "23d37b41c4d492604e545c05e0d6abe35eb38cc0"
+                "reference": "844b10da6abf50044ae9c40120cb5b927352bd95"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/daita/my-small-php-tools/zipball/23d37b41c4d492604e545c05e0d6abe35eb38cc0",
-                "reference": "23d37b41c4d492604e545c05e0d6abe35eb38cc0",
+                "url": "https://api.github.com/repos/daita/my-small-php-tools/zipball/844b10da6abf50044ae9c40120cb5b927352bd95",
+                "reference": "844b10da6abf50044ae9c40120cb5b927352bd95",
                 "shasum": ""
             },
             "require": {
                 "php": "^7.0"
             },
+            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -40,7 +41,11 @@
                 }
             ],
             "description": "My small PHP Tools",
-            "time": "2020-01-08T12:11:53+00:00"
+            "support": {
+                "issues": "https://github.com/daita/my-small-php-tools/issues",
+                "source": "https://github.com/daita/my-small-php-tools/tree/master"
+            },
+            "time": "2020-12-02T14:37:02+00:00"
         }
     ],
     "packages-dev": [],
@@ -52,5 +57,6 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": [],
-    "platform-dev": []
+    "platform-dev": [],
+    "plugin-api-version": "2.0.0"
 }

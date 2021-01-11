@@ -32,14 +32,11 @@ namespace OCA\Files_FullTextSearch\Events;
 
 
 use daita\MySmallPhpTools\Traits\TArrayTools;
+use OC\AppFramework\Bootstrap\Coordinator;
 use OCA\Files_FullTextSearch\Service\ConfigService;
 use OCA\Files_FullTextSearch\Service\FilesService;
 use OCA\Files_FullTextSearch\Service\MiscService;
 use OCP\App\IAppManager;
-use OCP\AppFramework\QueryException;
-use OCP\Comments\CommentsEvent;
-use OCP\Files\InvalidPathException;
-use OCP\Files\NotFoundException;
 use OCP\FullTextSearch\IFullTextSearchManager;
 use OCP\FullTextSearch\Model\IIndex;
 
@@ -61,6 +58,9 @@ class FilesEvents {
 	/** @var IAppManager */
 	private $appManager;
 
+	/** @var Coordinator */
+	private $coordinator;
+
 	/** @var IFullTextSearchManager */
 	private $fullTextSearchManager;
 
@@ -79,17 +79,20 @@ class FilesEvents {
 	 *
 	 * @param string $userId
 	 * @param IAppManager $appManager
+	 * @param Coordinator $coordinator
 	 * @param IFullTextSearchManager $fullTextSearchManager
 	 * @param FilesService $filesService
 	 * @param ConfigService $configService
 	 * @param MiscService $miscService
 	 */
 	public function __construct(
-		$userId, IAppManager $appManager, IFullTextSearchManager $fullTextSearchManager,
+		$userId, IAppManager $appManager, Coordinator $coordinator,
+		IFullTextSearchManager $fullTextSearchManager,
 		FilesService $filesService, ConfigService $configService, MiscService $miscService
 	) {
 		$this->userId = $userId;
 		$this->appManager = $appManager;
+		$this->coordinator = $coordinator;
 		$this->fullTextSearchManager = $fullTextSearchManager;
 		$this->filesService = $filesService;
 		$this->configService = $configService;
@@ -101,16 +104,9 @@ class FilesEvents {
 	 * @return bool
 	 */
 	private function registerFullTextSearchServices() {
-		if (!$this->appManager->isInstalled('fulltextsearch')
-			|| !class_exists('\OCA\FullTextSearch\AppInfo\Application')) {
-			$this->miscService->log('fulltextsearch not installed', 1);
+		$this->coordinator->bootApp('fulltextsearch');
 
-			return false;
-		}
-
-		$fulltextsearch = new \OCA\FullTextSearch\AppInfo\Application();
-		$fulltextsearch->registerServices();
-
+<<<<<<< HEAD
 		return true;
 	}
 
@@ -266,6 +262,9 @@ class FilesEvents {
 		}
 
 		$this->fullTextSearchManager->updateIndexStatus('files', $fileId, IIndex::INDEX_META);
+=======
+		return $this->fullTextSearchManager->isAvailable();
+>>>>>>> v20.0.0
 	}
 
 
@@ -286,26 +285,5 @@ class FilesEvents {
 	}
 
 
-	/**
-	 * @param CommentsEvent $event
-	 */
-	public function onCommentNew(CommentsEvent $event) {
-		if (!$this->registerFullTextSearchServices()) {
-			return;
-		}
-
-		$comment = $event->getComment();
-		$fileId = $comment->getObjectId();
-
-		$this->fullTextSearchManager->updateIndexStatus('files', $fileId, IIndex::INDEX_CONTENT);
-	}
-
-
-	public function onNewScannedFile2(array $params) {
-	}
-
-
-	public function onNewScannedFile(array $params) {
-	}
 }
 

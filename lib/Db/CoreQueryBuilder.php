@@ -31,50 +31,23 @@ declare(strict_types=1);
 namespace OCA\Files_FullTextSearch\Db;
 
 
-use OC;
-use OC\SystemConfig;
-use OCA\Files_FullTextSearch\Service\MiscService;
-use OCA\Social\Db\SocialQueryBuilder;
-use OCP\IDBConnection;
-use OCP\ILogger;
+use daita\MySmallPhpTools\Db\ExtendedQueryBuilder;
 
 
 /**
- * Class CoreRequestBuilder
+ * Class CoreQueryBuilder
  *
  * @package OCA\Files_FullTextSearch\Db
  */
-class CoreRequestBuilder {
-
-
-	const TABLE_SHARES = 'share';
-
-
-	/** @var MiscService */
-	protected $miscService;
-
-	/** @var string */
-	protected $defaultSelectAlias;
-
+class CoreQueryBuilder extends ExtendedQueryBuilder {
 
 	/**
-	 * CoreRequestBuilder constructor.
+	 * Limit the request to the Id
 	 *
-	 * @param MiscService $miscService
+	 * @param $fileSource
 	 */
-	public function __construct(MiscService $miscService) {
-		$this->miscService = $miscService;
-	}
-
-	/**
-	 * @return CoreQueryBuilder
-	 */
-	public function getQueryBuilder(): CoreQueryBuilder {
-		return new CoreQueryBuilder(
-			OC::$server->get(IDBConnection::class),
-			OC::$server->get(SystemConfig::class),
-			OC::$server->get(ILogger::class)
-		);
+	public function limitToFileSource(int $fileSource) {
+		$this->limitToDBFieldInt('file_source', $fileSource);
 	}
 
 }
