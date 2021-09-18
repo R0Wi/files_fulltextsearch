@@ -31,9 +31,12 @@ declare(strict_types=1);
 namespace OCA\Files_FullTextSearch\Service;
 
 
-use daita\MySmallPhpTools\Traits\TPathTools;
+use ArtificialOwl\MySmallPhpTools\Traits\Nextcloud\nc22\TNC22Logger;
+use ArtificialOwl\MySmallPhpTools\Traits\TPathTools;
 use Exception;
 use OC\FullTextSearch\Model\DocumentAccess;
+use OC\User\NoUserException;
+use OCA\Files_FullTextSearch\AppInfo\Application;
 use OCA\Files_FullTextSearch\Exceptions\EmptyUserException;
 use OCA\Files_FullTextSearch\Exceptions\FileIsNotIndexableException;
 use OCA\Files_FullTextSearch\Exceptions\FilesNotFoundException;
@@ -73,6 +76,7 @@ class FilesService {
 
 
 	use TPathTools;
+	use TNC22Logger;
 
 
 	const MIMETYPE_TEXT = 'files_text';
@@ -174,6 +178,7 @@ class FilesService {
 		$this->fullTextSearchManager = $fullTextSearchManager;
 
 		$this->miscService = $miscService;
+		$this->setup('app', Application::APP_ID);
 	}
 
 
@@ -197,13 +202,27 @@ class FilesService {
 		$this->initFileSystems($userId);
 
 		/** @var Folder $files */
-		$files = $this->rootFolder->getUserFolder($userId)
-								  ->get($indexOptions->getOption('path', '/'));
-		if ($files instanceof Folder) {
-			return $this->getChunksFromDirectory($userId, $files);
-		} else {
-			return [$files];
+		try {
+			$files = $this->rootFolder->getUserFolder($userId)
+									  ->get($indexOptions->getOption('path', '/'));
+		} catch (Throwable $e) {
+			$this->e($e, ['userId' => $userId, 'options' => $indexOptions]);
+			\OC::$server->getLogger()->log(2, 'Issue while retrieving rootFolder for ' . $userId);
+
+			return [];
 		}
+
+		if ($files instanceof Folder) {
+			$this->debug('object from getChunksFromUser is a Folder');
+			$chunks = $this->getChunksFromDirectory($userId, $files);
+			$this->debug('getChunksFromUser result', ['chunks' => $chunks]);
+
+			return $chunks;
+		}
+
+		$this->debug('object from getChunksFromUser is not a Folder', ['path' => $files->getPath()]);
+
+		return [$this->getPathFromRoot($files->getPath(), $userId, true)];
 	}
 
 
@@ -216,10 +235,11 @@ class FilesService {
 	 * @throws InvalidPathException
 	 * @throws NotFoundException
 	 */
-	private function getChunksFromDirectory(string $userId, Folder $node, $level = 0): array {
+	private function getChunksFromDirectory(string $userId, Folder $node, int $level = 0): array {
 		$entries = [];
 		$level++;
 
+		$this->debug('getChunksFromDirectory', ['userId' => $userId, 'level' => $level]);
 		$files = $node->getDirectoryListing();
 		if (empty($files)) {
 			$entries[] = $this->getPathFromRoot($node->getPath(), $userId, true);
@@ -232,12 +252,20 @@ class FilesService {
 			}
 			if ($file->getType() === FileInfo::TYPE_FOLDER && $level < self::CHUNK_TREE_SIZE) {
 				/** @var $file Folder */
-				$entries =
-					array_merge($entries, $this->getChunksFromDirectory($userId, $file, $level));
+				$entries = array_merge($entries, $this->getChunksFromDirectory($userId, $file, $level));
 			} else {
 				$entries[] = $filePath;
 			}
 		}
+
+		$this->debug(
+			'getChunksFromDirectory result',
+			[
+				'userId' => $userId,
+				'level'  => $level,
+				'size'   => count($entries)
+			]
+		);
 
 		return $entries;
 	}
@@ -250,9 +278,10 @@ class FilesService {
 	 * @return FilesDocument[]
 	 * @throws InvalidPathException
 	 * @throws NotFoundException
+	 * @throws NotPermittedException
+	 * @throws NoUserException
 	 */
 	public function getFilesFromUser(string $userId, string $chunk): array {
-
 		$this->initFileSystems($userId);
 		$this->sumDocuments = 0;
 
@@ -262,9 +291,12 @@ class FilesService {
 
 		$result = [];
 		if ($files instanceof Folder) {
+			$this->debug('object from getFilesFromUser is a Folder', ['chunk' => $chunk]);
 			$result = $this->generateFilesDocumentFromParent($userId, $files);
+
 			$result = array_merge($result, $this->getFilesFromDirectory($userId, $files));
 		} else {
+			$this->debug('object from getFilesFromUser is a File', ['chunk' => $chunk]);
 			try {
 				$result[] = $this->generateFilesDocumentFromFile($userId, $files);
 			} catch (FileIsNotIndexableException $e) {
@@ -337,6 +369,8 @@ class FilesService {
 	 * @param string $userId
 	 */
 	private function initFileSystems(string $userId) {
+		$this->debug('initFileSystems', ['userId' => $userId]);
+
 		if ($userId === '') {
 			return;
 		}
@@ -381,6 +415,9 @@ class FilesService {
 	 * @throws Exception
 	 */
 	private function generateFilesDocumentFromFile(string $viewerId, Node $file): FilesDocument {
+		if (is_null($file->getId())) {
+			throw new NotFoundException();
+		}
 
 		$this->isNodeIndexable($file);
 
@@ -406,10 +443,14 @@ class FilesService {
 			$ownerId = '';
 		}
 
-		$document->setType($file->getType())
-				 ->setOwnerId($ownerId)
-				 ->setPath($this->getPathFromViewerId($file->getId(), $viewerId))
-				 ->setViewerId($viewerId);
+		try {
+			$document->setType($file->getType())
+					 ->setOwnerId($ownerId)
+					 ->setPath($this->getPathFromViewerId($file->getId(), $viewerId))
+					 ->setViewerId($viewerId);
+		} catch (Throwable $t) {
+			throw new FileIsNotIndexableException();
+		}
 
 		if ($file->getMimetype() !== null) {
 			$document->setMimetype($file->getMimetype());
@@ -471,6 +512,7 @@ class FilesService {
 
 		$files = $this->rootFolder->getUserFolder($userId)
 								  ->getById($fileId);
+
 		if (sizeof($files) === 0) {
 			throw new FilesNotFoundException();
 		}
@@ -772,7 +814,7 @@ class FilesService {
 				$shareNames[$this->miscService->secureUsername($username)] =
 					(!is_string($path)) ? $path = '' : $path;
 
-			} catch (Exception $e) {
+			} catch (Throwable $e) {
 				$this->miscService->log(
 					'Issue while getting information on documentId:' . $document->getId(), 0
 				);
@@ -1185,11 +1227,15 @@ class FilesService {
 			}
 		}
 
-		$parent = $file->getParent();
+		try {
+			$parent = $file->getParent();
+		} catch (NotFoundException $e) {
+			return;
+		}
 		$parentPath = $this->withoutBeginSlash($parent->getPath());
 		$path = substr($parent->getPath(), 8 + strpos($parentPath, '/'));
 		if (is_string($path)) {
-			$this->isNodeIndexable($file->getParent());
+			$this->isNodeIndexable($parent);
 		}
 	}
 
@@ -1197,12 +1243,11 @@ class FilesService {
 	/**
 	 * @param string $path
 	 * @param string $userId
-	 *
 	 * @param bool $entrySlash
 	 *
 	 * @return string
 	 */
-	private function getPathFromRoot(string $path, string $userId, bool $entrySlash = false) {
+	private function getPathFromRoot(string $path, string $userId, bool $entrySlash = false): string {
 		// TODO: better way to do this : we remove the '/userid/files/'
 		// TODO: do we need userId, or can we crop the path like in isNodeIndexable()
 		$path = substr($path, 8 + strlen($userId));
@@ -1210,7 +1255,17 @@ class FilesService {
 			$path = '';
 		}
 
-		return (($entrySlash) ? '/' : '') . $path;
+		$result = (($entrySlash) ? '/' : '') . $path;
+		$this->debug(
+			'getPathFromRoot', [
+								 'path'       => $path,
+								 'userId'     => $userId,
+								 'entrySlash' => $entrySlash,
+								 'result'     => $result
+							 ]
+		);
+
+		return $result;
 	}
 
 }

@@ -143,7 +143,7 @@ class ConfigService {
 			$defaultValue = $this->defaults[$key];
 		}
 
-		return (string)$this->config->getAppValue(Application::APP_NAME, $key, $defaultValue);
+		return (string)$this->config->getAppValue(Application::APP_ID, $key, $defaultValue);
 	}
 
 	/**
@@ -153,7 +153,7 @@ class ConfigService {
 	 * @param string $value
 	 */
 	public function setAppValue(string $key, string $value) {
-		$this->config->setAppValue(Application::APP_NAME, $key, $value);
+		$this->config->setAppValue(Application::APP_ID, $key, $value);
 	}
 
 	/**
@@ -162,7 +162,7 @@ class ConfigService {
 	 * @param string $key
 	 */
 	public function deleteAppValue(string $key) {
-		$this->config->deleteAppValue(Application::APP_NAME, $key);
+		$this->config->deleteAppValue(Application::APP_ID, $key);
 	}
 
 
@@ -192,7 +192,7 @@ class ConfigService {
 		}
 
 		return $this->config->getUserValue(
-			$this->userId, Application::APP_NAME, $key, $defaultValue
+			$this->userId, Application::APP_ID, $key, $defaultValue
 		);
 	}
 
@@ -206,7 +206,7 @@ class ConfigService {
 	 * @return string
 	 */
 	public function getValueForUser(string $userId, string $key): string {
-		return $this->config->getUserValue($userId, Application::APP_NAME, $key);
+		return $this->config->getUserValue($userId, Application::APP_ID, $key);
 	}
 
 	/**
@@ -219,7 +219,7 @@ class ConfigService {
 	 * @throws PreConditionNotMetException
 	 */
 	public function setValueForUser(string $userId, string $key, string $value) {
-		$this->config->setUserValue($userId, Application::APP_NAME, $key, $value);
+		$this->config->setUserValue($userId, Application::APP_ID, $key, $value);
 	}
 
 

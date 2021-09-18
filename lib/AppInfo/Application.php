@@ -32,13 +32,10 @@ namespace OCA\Files_FullTextSearch\AppInfo;
 
 
 use Closure;
-use OCA\Circles\Listeners\UserDeleted;
 use OCA\Files_FullTextSearch\Hooks\FilesHooks;
 use OCA\Files_FullTextSearch\Listeners\FileChanged;
 use OCA\Files_FullTextSearch\Listeners\FileCreated;
 use OCA\Files_FullTextSearch\Listeners\FileDeleted;
-use OCA\Files_FullTextSearch\Listeners\FileEdit;
-use OCA\Files_FullTextSearch\Listeners\FileNew;
 use OCA\Files_FullTextSearch\Listeners\FileRenamed;
 use OCA\Files_FullTextSearch\Listeners\ShareCreated;
 use OCP\AppFramework\App;
@@ -66,7 +63,7 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 class Application extends App implements IBootstrap {
 
 
-	const APP_NAME = 'files_fulltextsearch';
+	const APP_ID = 'files_fulltextsearch';
 
 
 	/**
@@ -75,7 +72,7 @@ class Application extends App implements IBootstrap {
 	 * @param array $params
 	 */
 	public function __construct(array $params = []) {
-		parent::__construct(self::APP_NAME, $params);
+		parent::__construct(self::APP_ID, $params);
 	}
 
 

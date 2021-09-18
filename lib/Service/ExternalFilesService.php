@@ -31,13 +31,15 @@ declare(strict_types=1);
 namespace OCA\Files_FullTextSearch\Service;
 
 
-use daita\MySmallPhpTools\Traits\TArrayTools;
+use ArtificialOwl\MySmallPhpTools\Traits\Nextcloud\nc22\TNC22Logger;
+use ArtificialOwl\MySmallPhpTools\Traits\TArrayTools;
 use Exception;
 use OC;
 use OC\App\AppManager;
 use OCA\Files_External\Lib\StorageConfig;
 use OCA\Files_External\Service\GlobalStoragesService;
 use OCA\Files_External\Service\UserGlobalStoragesService;
+use OCA\Files_FullTextSearch\AppInfo\Application;
 use OCA\Files_FullTextSearch\Exceptions\ExternalMountNotFoundException;
 use OCA\Files_FullTextSearch\Exceptions\ExternalMountWithNoViewerException;
 use OCA\Files_FullTextSearch\Exceptions\FileIsNotIndexableException;
@@ -61,6 +63,7 @@ use OCP\Share\IManager;
 class ExternalFilesService {
 
 
+	use TNC22Logger;
 	use TArrayTools;
 
 
@@ -122,6 +125,7 @@ class ExternalFilesService {
 
 		$this->configService = $configService;
 		$this->miscService = $miscService;
+		$this->setup('app', Application::APP_ID);
 	}
 
 
@@ -133,8 +137,16 @@ class ExternalFilesService {
 			return;
 		}
 
+		$this->debug('initExternalFilesForUser', ['userId' => $userId]);
 		$this->userGlobalStoragesService = OC::$server->getUserGlobalStoragesService();
 		$this->globalStoragesService = OC::$server->getGlobalStoragesService();
+		$this->debug(
+			'initExternalFilesForUser result',
+			[
+				'userGlobalStoragesService' => is_null($this->userGlobalStoragesService),
+				'globalStoragesService' => is_null($this->globalStoragesService)
+			]
+		);
 	}
 
 
@@ -239,10 +251,10 @@ class ExternalFilesService {
 	private function getMountPoint(Node $file): MountPoint {
 
 		try {
-			if($file->getMountPoint()->getMountId() === null){
-                             throw new FileIsNotIndexableException('getMountId is null');
-                        }
-			
+			if ($file->getMountPoint()->getMountId() === null) {
+				throw new FileIsNotIndexableException('getMountId is null');
+			}
+
 			return $this->getExternalMountById(
 				$file->getMountPoint()
 					 ->getMountId()

@@ -1,5 +1,32 @@
 # Changelog
 
+### 22.0.1
+
+- fixing index of groupfoldets
+
+
+### 22.0.0
+
+- Fixing events
+
+
+### 21.0.2 
+
+- Adding some logging
+- Fixing some crashing
+
+
+### 21.0.1
+
+- Fixing some issue with null File
+- Fixing issue with occ fulltextsearch:command
+- adding few logging
+
+
+### 21.0.0
+
+- Compat NC21
+
 
 ### 20.0.0
 

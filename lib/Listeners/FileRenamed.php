@@ -42,7 +42,7 @@ use OCP\FullTextSearch\Model\IIndex;
 /**
  * Class FileRenamed
  *
- * @package OCA\Circles\Events
+ * @package OCA\Files_FullTextSearch\Listeners
  */
 class FileRenamed extends ListenersCore implements IEventListener {
 
@@ -51,11 +51,11 @@ class FileRenamed extends ListenersCore implements IEventListener {
 	 * @param Event $event
 	 */
 	public function handle(Event $event): void {
-		if (!($event instanceof NodeRenamedEvent)) {
+		if (!$this->registerFullTextSearchServices() || !($event instanceof NodeRenamedEvent)) {
 			return;
 		}
 
-		$node = $event->getSource();
+		$node = $event->getTarget();
 		try {
 			$this->fullTextSearchManager->updateIndexStatus(
 				'files', (string)$node->getId(), IIndex::INDEX_META

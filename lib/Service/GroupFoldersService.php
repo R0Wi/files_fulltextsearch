@@ -31,8 +31,10 @@ declare(strict_types=1);
 namespace OCA\Files_FullTextSearch\Service;
 
 
-use daita\MySmallPhpTools\Traits\TArrayTools;
+use ArtificialOwl\MySmallPhpTools\Traits\Nextcloud\nc22\TNC22Logger;
+use ArtificialOwl\MySmallPhpTools\Traits\TArrayTools;
 use Exception;
+use OCA\Files_FullTextSearch\AppInfo\Application;
 use OCA\Files_FullTextSearch\Exceptions\FileIsNotIndexableException;
 use OCA\Files_FullTextSearch\Exceptions\GroupFolderNotFoundException;
 use OCA\Files_FullTextSearch\Exceptions\KnownFileSourceException;
@@ -55,6 +57,7 @@ use OCP\Share\IManager;
 class GroupFoldersService {
 
 
+	use TNC22Logger;
 	use TArrayTools;
 
 
@@ -100,7 +103,8 @@ class GroupFoldersService {
 		ConfigService $configService, MiscService $miscService
 	) {
 
-		if ($appManager->isEnabledForUser('groupfolders', $userId)) {
+		if ($configService->getAppValue(ConfigService::FILES_GROUP_FOLDERS) === '1'
+			&& $appManager->isEnabledForUser('groupfolders', $userId)) {
 			try {
 				$this->folderManager = new FolderManager($dbConnection);
 			} catch (Exception $e) {
@@ -113,6 +117,7 @@ class GroupFoldersService {
 		$this->localFilesService = $localFilesService;
 		$this->configService = $configService;
 		$this->miscService = $miscService;
+		$this->setup('app', Application::APP_ID);
 	}
 
 
@@ -124,7 +129,9 @@ class GroupFoldersService {
 			return;
 		}
 
+		$this->debug('initGroupSharesForUser request', ['userId' => $userId]);
 		$this->groupFolders = $this->getMountPoints($userId);
+		$this->debug('initGroupSharesForUser result', ['groupFolders' => $this->groupFolders]);
 	}
 
 

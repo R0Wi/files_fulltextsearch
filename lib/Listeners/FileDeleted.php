@@ -42,7 +42,7 @@ use OCP\FullTextSearch\Model\IIndex;
 /**
  * Class FileDeleted
  *
- * @package OCA\Circles\Events
+ * @package OCA\Files_FullTextSearch\Listeners
  */
 class FileDeleted extends ListenersCore implements IEventListener {
 
@@ -51,7 +51,7 @@ class FileDeleted extends ListenersCore implements IEventListener {
 	 * @param Event $event
 	 */
 	public function handle(Event $event): void {
-		if (!($event instanceof NodeDeletedEvent)) {
+		if (!$this->registerFullTextSearchServices() || !($event instanceof NodeDeletedEvent)) {
 			return;
 		}
 
