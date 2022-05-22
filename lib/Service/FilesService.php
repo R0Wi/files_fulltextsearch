@@ -35,6 +35,8 @@ use ArtificialOwl\MySmallPhpTools\Traits\Nextcloud\nc22\TNC22Logger;
 use ArtificialOwl\MySmallPhpTools\Traits\TPathTools;
 use Exception;
 use OC\FullTextSearch\Model\DocumentAccess;
+use OC\SystemTag\SystemTagManager;
+use OC\SystemTag\SystemTagObjectMapper;
 use OC\User\NoUserException;
 use OCA\Files_FullTextSearch\AppInfo\Application;
 use OCA\Files_FullTextSearch\Exceptions\EmptyUserException;
@@ -61,9 +63,11 @@ use OCP\FullTextSearch\Model\IIndex;
 use OCP\FullTextSearch\Model\IIndexDocument;
 use OCP\FullTextSearch\Model\IIndexOptions;
 use OCP\FullTextSearch\Model\IRunner;
+use OCP\IURLGenerator;
 use OCP\IUserManager;
 use OCP\Lock\LockedException;
 use OCP\Share\IManager as IShareManager;
+use OCP\SystemTag\ISystemTag;
 use Throwable;
 
 
@@ -104,8 +108,17 @@ class FilesService {
 	/** @var IShareManager */
 	private $shareManager;
 
+	/** @var IURLGenerator */
+	private $urlGenerator;
+
 	/** @var ICommentsManager */
 	private $commentsManager;
+
+	/** @var SystemTagObjectMapper */
+	private $systemTagObjectMapper;
+
+	/** @var SystemTagManager */
+	private $systemTagManager;
 
 	/** @var ConfigService */
 	private $configService;
@@ -144,6 +157,7 @@ class FilesService {
 	 * @param IAppManager $appManager
 	 * @param IUserManager $userManager
 	 * @param IShareManager $shareManager
+	 * @param IURLGenerator $urlGenerator
 	 * @param ICommentsManager $commentsManager
 	 * @param ConfigService $configService
 	 * @param LocalFilesService $localFilesService
@@ -156,19 +170,32 @@ class FilesService {
 	 * @internal param IProviderFactory $factory
 	 */
 	public function __construct(
-		IAppContainer $container, IRootFolder $rootFolder, IAppManager $appManager,
-		IUserManager $userManager, IShareManager $shareManager, ICommentsManager $commentsManager,
+		IAppContainer $container,
+		IRootFolder $rootFolder,
+		IAppManager $appManager,
+		IUserManager $userManager,
+		IShareManager $shareManager,
+		IURLGenerator $urlGenerator,
+		ICommentsManager $commentsManager,
+		SystemTagObjectMapper $systemTagObjectMapper,
+		SystemTagManager $systemTagManager,
 		ConfigService $configService,
-		LocalFilesService $localFilesService, ExternalFilesService $externalFilesService,
-		GroupFoldersService $groupFoldersService, ExtensionService $extensionService,
-		IFullTextSearchManager $fullTextSearchManager, MiscService $miscService
+		LocalFilesService $localFilesService,
+		ExternalFilesService $externalFilesService,
+		GroupFoldersService $groupFoldersService,
+		ExtensionService $extensionService,
+		IFullTextSearchManager $fullTextSearchManager,
+		MiscService $miscService
 	) {
 		$this->container = $container;
 		$this->rootFolder = $rootFolder;
 		$this->appManager = $appManager;
 		$this->userManager = $userManager;
 		$this->shareManager = $shareManager;
+		$this->urlGenerator = $urlGenerator;
 		$this->commentsManager = $commentsManager;
+		$this->systemTagObjectMapper = $systemTagObjectMapper;
+		$this->systemTagManager = $systemTagManager;
 
 		$this->configService = $configService;
 		$this->localFilesService = $localFilesService;
@@ -262,8 +289,8 @@ class FilesService {
 			'getChunksFromDirectory result',
 			[
 				'userId' => $userId,
-				'level'  => $level,
-				'size'   => count($entries)
+				'level' => $level,
+				'size' => count($entries)
 			]
 		);
 
@@ -323,9 +350,9 @@ class FilesService {
 		$this->updateRunnerAction('generateIndexFiles', true);
 		$this->updateRunnerInfo(
 			[
-				'info'          => $node->getPath(),
-				'title'         => '',
-				'content'       => '',
+				'info' => $node->getPath(),
+				'title' => '',
+				'content' => '',
 				'documentTotal' => $this->sumDocuments
 			]
 		);
@@ -423,7 +450,7 @@ class FilesService {
 
 		$source = $this->getFileSource($file);
 		$document = new FilesDocument(FilesProvider::FILES_PROVIDER_ID, (string)$file->getId());
-		$document->setAccess(new DocumentAccess());
+		$document->setAccess(new DocumentAccess($file->getOwner()->getUID()));
 
 		if ($file->getId() === -1) {
 			throw new FileIsNotIndexableException();
@@ -458,6 +485,26 @@ class FilesService {
 
 		$document->setModifiedTime($file->getMTime())
 				 ->setSource($source);
+
+		$tagIds = $this->systemTagObjectMapper->getTagIdsForObjects([$file->getId()], 'files');
+		if (array_key_exists($file->getId(), $tagIds)) {
+			$tags = array_values(
+				array_map(function (ISystemTag $tag): string {
+					return $tag->getName();
+				}, $this->systemTagManager->getTagsByIds($tagIds[$file->getId()]))
+			);
+			$document->setTags($tags);
+		}
+
+		$document->setModifiedTime($file->getMTime());
+
+		$stat = $file->stat();
+		$document->setMore(
+			[
+				'creationTime' => $this->getInt('ctime', $stat),
+				'accessedTime' => $this->getInt('atime', $stat)
+			]
+		);
 
 		return $document;
 	}
@@ -578,8 +625,8 @@ class FilesService {
 			$document->getIndex()
 					 ->setStatus(IIndex::INDEX_IGNORE);
 			$this->miscService->log(
-				'Exception while generateDocument: ' . $e->getMessage() . ' - trace: '
-				. json_encode($e->getTrace())
+				'Exception while generateDocument: ' . $e->getMessage() . ' (' . get_class($e) . ') at '
+				. $e->getFile() . ' line ' . $e->getLine()
 			);
 		}
 	}
@@ -737,6 +784,12 @@ class FilesService {
 	private function updateContentFromFile(FilesDocument $document, Node $file) {
 
 		$document->setTitle($document->getPath());
+		$document->setLink(
+			$this->urlGenerator->linkToRouteAbsolute(
+				'files.viewcontroller.showFile',
+				['fileid' => $document->getId()]
+			)
+		);
 
 		if ((!$document->getIndex()
 					   ->isStatus(IIndex::INDEX_CONTENT)
@@ -1061,6 +1114,10 @@ class FilesService {
 			return;
 		}
 
+		if (substr($file->getName(), 0, 2) === '~$') {
+			return;
+		}
+
 		if ($this->configService->getAppValue(ConfigService::FILES_OFFICE) !== '1') {
 			$document->setContent('');
 
@@ -1258,10 +1315,10 @@ class FilesService {
 		$result = (($entrySlash) ? '/' : '') . $path;
 		$this->debug(
 			'getPathFromRoot', [
-								 'path'       => $path,
-								 'userId'     => $userId,
+								 'path' => $path,
+								 'userId' => $userId,
 								 'entrySlash' => $entrySlash,
-								 'result'     => $result
+								 'result' => $result
 							 ]
 		);
 
