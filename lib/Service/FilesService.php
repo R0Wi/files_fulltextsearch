@@ -449,9 +449,6 @@ class FilesService {
 		$this->isNodeIndexable($file);
 
 		$source = $this->getFileSource($file);
-		$document = new FilesDocument(FilesProvider::FILES_PROVIDER_ID, (string)$file->getId());
-		$document->setAccess(new DocumentAccess($file->getOwner()->getUID()));
-
 		if ($file->getId() === -1) {
 			throw new FileIsNotIndexableException();
 		}
@@ -469,6 +466,9 @@ class FilesService {
 		if (!is_string($ownerId)) {
 			$ownerId = '';
 		}
+
+		$document = new FilesDocument(FilesProvider::FILES_PROVIDER_ID, (string)$file->getId());
+		$document->setAccess(new DocumentAccess($ownerId));
 
 		try {
 			$document->setType($file->getType())
