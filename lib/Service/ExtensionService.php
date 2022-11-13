@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 
@@ -30,16 +31,13 @@ declare(strict_types=1);
 
 namespace OCA\Files_FullTextSearch\Service;
 
-
 use OCA\Files_FullTextSearch\Model\FilesDocument;
-use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\GenericEvent;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Files\Node;
 use OCP\FullTextSearch\Model\IIndexDocument;
 use OCP\FullTextSearch\Model\ISearchRequest;
 use OCP\FullTextSearch\Model\ISearchResult;
-
 
 /**
  * Class ExtensionService
@@ -87,32 +85,32 @@ class ExtensionService {
 	 * @param FilesDocument $document
 	 * @param Node $file
 	 */
-	public function fileIndexing(FilesDocument &$document, Node $file) {
-		$this->dispatch('Files_FullTextSearch.onFileIndexing', ['file' => $file, 'document' => &$document]);
+	public function fileIndexing(FilesDocument $document, Node $file) {
+		$this->dispatch('Files_FullTextSearch.onFileIndexing', ['file' => $file, 'document' => $document]);
 	}
 
 
 	/**
 	 * @param ISearchRequest $request
 	 */
-	public function searchRequest(ISearchRequest &$request) {
-		$this->dispatch('Files_FullTextSearch.onSearchRequest', ['request' => &$request]);
+	public function searchRequest(ISearchRequest $request) {
+		$this->dispatch('Files_FullTextSearch.onSearchRequest', ['request' => $request]);
 	}
 
 
 	/**
 	 * @param ISearchResult $result
 	 */
-	public function searchResult(ISearchResult &$result) {
-		$this->dispatch('Files_FullTextSearch.onSearchResult', ['result' => &$result]);
+	public function searchResult(ISearchResult $result) {
+		$this->dispatch('Files_FullTextSearch.onSearchResult', ['result' => $result]);
 	}
 
 
 	/**
 	 * @param IIndexDocument $document
 	 */
-	public function indexComparing(IIndexDocument &$document) {
-		$this->dispatch('Files_FullTextSearch.onIndexComparing', ['document' => &$document]);
+	public function indexComparing(IIndexDocument $document) {
+		$this->dispatch('Files_FullTextSearch.onIndexComparing', ['document' => $document]);
 	}
 
 
@@ -123,6 +121,4 @@ class ExtensionService {
 	private function dispatch(string $subject, array $arguments) {
 		$this->eventDispatcher->dispatchTyped(new GenericEvent($subject, $arguments));
 	}
-
 }
-

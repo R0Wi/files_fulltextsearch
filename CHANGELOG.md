@@ -1,11 +1,5 @@
 # Changelog
 
-### 22.0.1
-
-- fixing index of groupfoldets
-
-
-### 22.0.0
 ### 24.0.0
 
 - compat nc24

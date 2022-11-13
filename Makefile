@@ -8,9 +8,9 @@ package_name=$(shell echo $(app_name) | tr '[:upper:]' '[:lower:]')
 cert_dir=$(HOME)/.nextcloud/certificates
 github_account=nextcloud
 release_account=nextcloud-releases
-branch=stable24
-version=24.0.0
-since_tag=23.0.0
+branch=master
+version=25.0.0-alpha1
+since_tag=24.0.0
 
 all: appstore
 
@@ -71,8 +71,18 @@ clean:
 
 # composer packages
 composer:
-	composer install --prefer-dist
-	composer upgrade --prefer-dist
+	composer install --prefer-dist --no-dev
+	composer upgrade --prefer-dist --no-dev
+
+cs-check: composer-dev
+	composer cs:check
+
+cs-fix: composer-dev
+	composer cs:fix
+
+composer-dev:
+	composer install --prefer-dist --dev
+	composer upgrade --prefer-dist --dev
 
 appstore: clean composer
 	mkdir -p $(sign_dir)

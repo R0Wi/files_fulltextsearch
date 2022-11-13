@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 
@@ -29,7 +30,6 @@ declare(strict_types=1);
 
 
 namespace OCA\Files_FullTextSearch\Service;
-
 
 use ArtificialOwl\MySmallPhpTools\Traits\Nextcloud\nc22\TNC22Logger;
 use ArtificialOwl\MySmallPhpTools\Traits\TPathTools;
@@ -70,27 +70,24 @@ use OCP\Share\IManager as IShareManager;
 use OCP\SystemTag\ISystemTag;
 use Throwable;
 
-
 /**
  * Class FilesService
  *
  * @package OCA\Files_FullTextSearch\Service
  */
 class FilesService {
-
-
 	use TPathTools;
 	use TNC22Logger;
 
 
-	const MIMETYPE_TEXT = 'files_text';
-	const MIMETYPE_PDF = 'files_pdf';
-	const MIMETYPE_OFFICE = 'files_office';
-	const MIMETYPE_ZIP = 'files_zip';
-	const MIMETYPE_IMAGE = 'files_image';
-	const MIMETYPE_AUDIO = 'files_audio';
+	public const MIMETYPE_TEXT = 'files_text';
+	public const MIMETYPE_PDF = 'files_pdf';
+	public const MIMETYPE_OFFICE = 'files_office';
+	public const MIMETYPE_ZIP = 'files_zip';
+	public const MIMETYPE_IMAGE = 'files_image';
+	public const MIMETYPE_AUDIO = 'files_audio';
 
-	const CHUNK_TREE_SIZE = 2;
+	public const CHUNK_TREE_SIZE = 2;
 
 
 	/** @var IAppContainer */
@@ -232,9 +229,10 @@ class FilesService {
 		try {
 			$files = $this->rootFolder->getUserFolder($userId)
 									  ->get($indexOptions->getOption('path', '/'));
+		} catch (NotFoundException $e) {
+			return [];
 		} catch (Throwable $e) {
-			$this->e($e, ['userId' => $userId, 'options' => $indexOptions]);
-			\OC::$server->getLogger()->log(2, 'Issue while retrieving rootFolder for ' . $userId);
+			$this->log(2, 'Issue while retrieving rootFolder for ' . $userId);
 
 			return [];
 		}
@@ -373,7 +371,6 @@ class FilesService {
 
 		$files = $node->getDirectoryListing();
 		foreach ($files as $file) {
-
 			try {
 				$documents[] = $this->generateFilesDocumentFromFile($userId, $file);
 				$this->sumDocuments++;
@@ -497,14 +494,18 @@ class FilesService {
 		}
 
 		$document->setModifiedTime($file->getMTime());
-
 		$stat = $file->stat();
-		$document->setMore(
-			[
-				'creationTime' => $this->getInt('ctime', $stat),
-				'accessedTime' => $this->getInt('atime', $stat)
-			]
-		);
+
+		if (is_array($stat)) {
+			$document->setMore(
+				[
+					'creationTime' => $this->getInt('ctime', $stat),
+					'accessedTime' => $this->getInt('atime', $stat)
+				]
+			);
+		} else {
+			$this->log(2, 'stat() on File #' . $file->getId() . ' is not an array: ' . json_encode($stat));
+		}
 
 		return $document;
 	}
@@ -576,9 +577,6 @@ class FilesService {
 	 * @throws FilesNotFoundException
 	 */
 	public function getFileFromIndex(IIndex $index): Node {
-		// it seems the method is already call slightly earlier in the process
-//		$this->impersonateOwner($index);
-
 		return $this->getFileFromId($index->getOwnerId(), (int)$index->getDocumentId());
 	}
 
@@ -591,7 +589,6 @@ class FilesService {
 	 * @throws Exception
 	 */
 	private function getPathFromViewerId(int $fileId, string $viewerId): string {
-
 		$viewerFiles = $this->rootFolder->getUserFolder($viewerId)
 										->getById($fileId);
 
@@ -617,7 +614,6 @@ class FilesService {
 	 * @param FilesDocument $document
 	 */
 	public function generateDocument(FilesDocument $document) {
-
 		try {
 			$this->updateFilesDocument($document);
 		} catch (Exception $e) {
@@ -641,7 +637,6 @@ class FilesService {
 	 * @throws NotFoundException
 	 */
 	private function generateDocumentFromIndex(IIndex $index): FilesDocument {
-
 		try {
 			$file = $this->getFileFromIndex($index);
 
@@ -743,7 +738,6 @@ class FilesService {
 	 * @throws FileIsNotIndexableException
 	 */
 	private function updateFilesDocumentFromFile(FilesDocument $document, Node $file) {
-
 		$document->getIndex()
 				 ->setSource($document->getSource());
 
@@ -782,7 +776,6 @@ class FilesService {
 	 * @param Node $file
 	 */
 	private function updateContentFromFile(FilesDocument $document, Node $file) {
-
 		$document->setTitle($document->getPath());
 		$document->setLink(
 			$this->urlGenerator->linkToRouteAbsolute(
@@ -795,8 +788,8 @@ class FilesService {
 					   ->isStatus(IIndex::INDEX_CONTENT)
 			 && !$document->getIndex()
 						  ->isStatus(IIndex::INDEX_META)
-			)
-			|| $file->getType() !== FileInfo::TYPE_FILE) {
+		)
+		|| $file->getType() !== FileInfo::TYPE_FILE) {
 			return;
 		}
 
@@ -846,7 +839,6 @@ class FilesService {
 	 * @return array
 	 */
 	private function updateShareNames(FilesDocument $document, Node $file): array {
-
 		$users = [];
 
 		$this->localFilesService->getShareUsersFromFile($file, $users);
@@ -866,7 +858,6 @@ class FilesService {
 				$path = $this->getPathFromViewerId($file->getId(), $username);
 				$shareNames[$this->miscService->secureUsername($username)] =
 					(!is_string($path)) ? $path = '' : $path;
-
 			} catch (Throwable $e) {
 				$this->miscService->log(
 					'Issue while getting information on documentId:' . $document->getId(), 0
@@ -887,7 +878,6 @@ class FilesService {
 	 * @return string
 	 */
 	private function parseMimeType(string $mimeType, string $extension): string {
-
 		$parsed = '';
 		try {
 			$this->parseMimeTypeText($mimeType, $extension, $parsed);
@@ -909,8 +899,19 @@ class FilesService {
 	 * @throws KnownFileMimeTypeException
 	 */
 	private function parseMimeTypeText(string $mimeType, string $extension, string &$parsed) {
-
 		if (substr($mimeType, 0, 5) === 'text/') {
+			$parsed = self::MIMETYPE_TEXT;
+			throw new KnownFileMimeTypeException();
+		}
+
+		// 20220219 Parse XML files as TEXT files
+		if (substr($mimeType, 0, 15) === 'application/xml') {
+			$parsed = self::MIMETYPE_TEXT;
+			throw new KnownFileMimeTypeException();
+		}
+
+		// 20220219 Parse .drawio file
+		if ($extension === 'drawio') {
 			$parsed = self::MIMETYPE_TEXT;
 			throw new KnownFileMimeTypeException();
 		}
@@ -965,7 +966,6 @@ class FilesService {
 	 * @throws KnownFileMimeTypeException
 	 */
 	private function parseMimeTypePDF(string $mimeType, string &$parsed) {
-
 		if ($mimeType === 'application/pdf') {
 			$parsed = self::MIMETYPE_PDF;
 			throw new KnownFileMimeTypeException();
@@ -994,7 +994,6 @@ class FilesService {
 	 * @throws KnownFileMimeTypeException
 	 */
 	private function parseMimeTypeOffice(string $mimeType, string &$parsed) {
-
 		$officeMimes = [
 			'application/msword',
 			'application/vnd.oasis.opendocument',
@@ -1058,14 +1057,77 @@ class FilesService {
 			return;
 		}
 
-		try {
-			$document->setContent(
-				base64_encode($file->getContent()), IIndexDocument::ENCODED_BASE64
-			);
-		} catch (NotPermittedException | LockedException $e) {
+		// 20220219 Inflate drawio file
+		if ($file->getExtension() === 'drawio') {
+			$content = $file->getContent();
+
+			try {
+				$xml = simplexml_load_string($content);
+
+				// Initialize $content
+				$content = '';
+
+				foreach ($xml->diagram as $child) {
+					$deflated_content = (string)$child;
+					$base64decoded = base64_decode($deflated_content);
+					$urlencoded_content = gzinflate($base64decoded);
+					$urldecoded_content = urldecode($urlencoded_content);
+
+					// Remove image tag
+					$diagram_str = preg_replace('/style=\"shape=image[^"]*\"/', '', $urldecoded_content);
+
+					// Construct XML
+					$diagram_xml = simplexml_load_string($diagram_str);
+					$content = $content . ' ' . $this->readDrawioXmlValue($diagram_xml);
+				}
+			} catch (\Throwable $t) {
+			}
+
+			try {
+				$document->setContent(
+					// 20220219 Pass content of inflated drawio graph xml
+					base64_encode($content), IIndexDocument::ENCODED_BASE64
+				);
+			} catch (NotPermittedException | LockedException $e) {
+			}
+		} else {
+			try {
+				$document->setContent(
+					base64_encode($file->getContent()), IIndexDocument::ENCODED_BASE64
+				);
+			} catch (NotPermittedException | LockedException $e) {
+			}
 		}
 	}
 
+	// 20220220 Read Draw.io XML elements and return a space separated
+	// strings, stripped of HTML tags, to be indexed.
+	/**
+	 * @param SimpleXMLElement $element
+	 *
+	 * @return string
+	 */
+	private function readDrawioXmlValue(\SimpleXMLElement $element) {
+		$str = '';
+		if ($element['value'] !== null && trim(strval($element['value'])) !== '') {
+			$str = $str . " " . trim(strval($element['value']));
+		}
+		if ($element !== null && trim(strval($element)) !== '') {
+			$str = $str . " " . trim(strval($element));
+		}
+
+		try {
+			foreach ($element->children() as $child) {
+				$str = $str . " " . $this->readDrawioXmlValue($child);
+			}
+		} finally {
+		}
+
+		// Strip HTML tags
+		$str_without_tags = preg_replace('/<[^>]*>/', ' ', $str);
+
+		return $str_without_tags;
+	}
 
 	/**
 	 * @param FilesDocument $document
@@ -1196,10 +1258,14 @@ class FilesService {
 	private function manageContentErrorException(IIndexDocument $document, Throwable $t) {
 		$document->getIndex()
 				 ->addError(
-					 'Error while getting file content', $t->getMessage(), IIndex::ERROR_SEV_3
+				 	'Error while getting file content',
+				 	$t->getMessage(),
+				 	IIndex::ERROR_SEV_3
 				 );
 		$this->updateNewIndexError(
-			$document->getIndex(), 'Error while getting file content', $t->getMessage(),
+			$document->getIndex(),
+			'Error while getting file content',
+			$t->getMessage(),
 			IIndex::ERROR_SEV_3
 		);
 
@@ -1276,7 +1342,6 @@ class FilesService {
 	 * @throws FileIsNotIndexableException
 	 */
 	private function isNodeIndexable(Node $file) {
-
 		if ($file->getType() === File::TYPE_FOLDER) {
 			/** @var Folder $file */
 			if ($file->nodeExists('.noindex')) {
@@ -1315,15 +1380,13 @@ class FilesService {
 		$result = (($entrySlash) ? '/' : '') . $path;
 		$this->debug(
 			'getPathFromRoot', [
-								 'path' => $path,
-								 'userId' => $userId,
-								 'entrySlash' => $entrySlash,
-								 'result' => $result
-							 ]
+				'path' => $path,
+				'userId' => $userId,
+				'entrySlash' => $entrySlash,
+				'result' => $result
+			]
 		);
 
 		return $result;
 	}
-
 }
-
