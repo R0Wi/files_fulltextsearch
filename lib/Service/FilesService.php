@@ -477,7 +477,7 @@ class FilesService {
 			throw new FileIsNotIndexableException();
 		}
 
-		if ($file->getMimetype() !== null) {
+		if (is_string($file->getMimetype())) {
 			$document->setMimetype($file->getMimetype());
 		}
 
