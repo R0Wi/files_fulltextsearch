@@ -1,13 +1,13 @@
 OC.L10N.register(
     "files_fulltextsearch",
     {
-    "files" : "files",
+    "files" : "файли",
     "Go to folder" : "Перейти до каталогу",
     "Open folder" : "Відкрити каталог",
     "Name" : "Ім'я",
     "Modified" : "Змінено",
     "Size" : "Розмір",
-    "Could not copy \"{file}\", target exists" : "Не вдається скопіювати файл \"{file}\", оскільки він вже присутній в точці призначення",
+    "Could not copy \"{file}\", target exists" : "Не вдалося скопіювати файл \"{file}\", оскільки файл з таким ім'ям вже присутній",
     "Could not copy \"{file}\"" : "Неможливо скопіювати \"{file}\"",
     "Copied {origin} inside {destination}" : "Скопійовано {origin} до {destination}",
     "Copied {origin} and {nbfiles} other files inside {destination}" : "{origin} ті {nbfiles} інших файлів скопійовано в {destination}",
@@ -37,9 +37,12 @@ OC.L10N.register(
     "Types" : "Категорії",
     "Maximum file size" : "Найбільший розмір файлу",
     "Maximum file size to index (in Mb)." : "Найбільший розмір файлу для індексування (у МБ).",
-    "Extract PDF" : "Видобувати PDF",
+    "Extract PDF" : "Видобути PDF",
     "Index the content of PDF files." : "Індексувати вміст файлів PDF.",
     "Extract Office" : "Видобувати офісні файли",
-    "Index the content of office files." : "Індексувати вміст офісних файлів."
+    "Index the content of office files." : "Індексувати вміст офісних файлів.",
+    "Results" : "Результат",
+    "Open Files" : "Перейти до Файлів",
+    "Directly from search results." : "Прямо у результатах пошуку."
 },
 "nplurals=4; plural=(n % 1 == 0 && n % 10 == 1 && n % 100 != 11 ? 0 : n % 1 == 0 && n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 1 : n % 1 == 0 && (n % 10 ==0 || (n % 10 >=5 && n % 10 <=9) || (n % 100 >=11 && n % 100 <=14 )) ? 2: 3);");

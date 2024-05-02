@@ -40,6 +40,9 @@ OC.L10N.register(
     "Extract PDF" : "Extrahera PDF",
     "Index the content of PDF files." : "Indexera innehållet i PDF-filer.",
     "Extract Office" : "Extrahera Office",
-    "Index the content of office files." : "Indexera innehållet i Office-filer."
+    "Index the content of office files." : "Indexera innehållet i Office-filer.",
+    "Results" : "Resultat",
+    "Open Files" : "Öppna filer",
+    "Directly from search results." : "Direkt från sökresultat."
 },
 "nplurals=2; plural=(n != 1);");
